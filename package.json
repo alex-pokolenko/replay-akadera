@@ -1,0 +1,11 @@
+{
+  "name": "replay-akadera",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "node server.js"
+  },
+  "dependencies": {
+    "cheerio": "^1.2.0"
+  }
+}
