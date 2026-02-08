@@ -5,29 +5,49 @@ const CORS_PROXIES = [
 let currentProxyIndex = 0;
 
 const RADIO_URL = 'https://akadera.bialystok.pl/bylo-grane/';
-const SONG_LIMIT = 10;
 
 const downloadBtn = document.getElementById('downloadBtn');
+const fetchBtn = document.getElementById('fetchBtn');
 const statusDiv = document.getElementById('status');
 const songListSection = document.getElementById('songList');
 const songsUl = document.getElementById('songs');
+const timeFromInput = document.getElementById('timeFrom');
+const timeToInput = document.getElementById('timeTo');
 
 let fetchedSongs = [];
 
 downloadBtn.addEventListener('click', handleDownload);
+fetchBtn.addEventListener('click', () => fetchSongs());
 
-// Fetch songs on page load
+// Set default time range (last hour) and fetch on load
+setDefaultTimeRange();
 fetchSongs();
+
+function setDefaultTimeRange() {
+    const now = new Date();
+    const oneHourAgo = new Date(now.getTime() - 60 * 60 * 1000);
+
+    timeToInput.value = formatTime(now);
+    timeFromInput.value = formatTime(oneHourAgo);
+}
+
+function formatTime(date) {
+    return date.toTimeString().slice(0, 5); // "HH:MM"
+}
 
 async function fetchSongs() {
     showStatus('Fetching songs from Radio Akadera...', 'info');
+    fetchBtn.disabled = true;
 
     try {
         const html = await fetchRadioPage();
-        fetchedSongs = parseSongs(html, SONG_LIMIT);
+        const allSongs = parseSongs(html);
+        fetchedSongs = filterSongsByTimeRange(allSongs, timeFromInput.value, timeToInput.value);
 
         if (fetchedSongs.length === 0) {
-            showStatus('No songs found. The page structure may have changed.', 'error');
+            showStatus('No songs found in this time range.', 'error');
+            songListSection.hidden = true;
+            downloadBtn.hidden = true;
             return;
         }
 
@@ -37,7 +57,17 @@ async function fetchSongs() {
     } catch (error) {
         console.error(error);
         showStatus(`Error: ${error.message}`, 'error');
+    } finally {
+        fetchBtn.disabled = false;
     }
+}
+
+function filterSongsByTimeRange(songs, fromTime, toTime) {
+    if (!fromTime || !toTime) return songs;
+
+    return songs.filter(song => {
+        return song.time >= fromTime && song.time <= toTime;
+    });
 }
 
 function handleDownload() {
@@ -78,7 +108,7 @@ async function fetchRadioPage() {
     throw new Error(`All proxies failed. Last error: ${lastError?.message}`);
 }
 
-function parseSongs(html, limit) {
+function parseSongs(html) {
     const songs = [];
 
     // Parse HTML to find song entries
@@ -92,8 +122,6 @@ function parseSongs(html, limit) {
     const reversedItems = listItems.reverse(); // Freshest songs first
 
     for (const li of reversedItems) {
-        if (songs.length >= limit) break;
-
         const text = li.textContent.trim();
         const parsed = parseSongText(text);
 
@@ -116,8 +144,8 @@ function parseSongs(html, limit) {
             });
         }
 
-        // Reverse to get freshest songs first, then take limit
-        songs.push(...allMatches.reverse().slice(0, limit));
+        // Reverse to get freshest songs first
+        songs.push(...allMatches.reverse());
     }
 
     return songs;
