@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Radio Akadera to Spotify</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <main>
+      <p class="subtitle">Export Radio Akadera playlist to Spotify</p>
+
+      <button id="downloadBtn" hidden>Download Playlist</button>
+
+      <div id="status" class="status" hidden></div>
+
+      <section id="songList" class="song-list" hidden>
+        <h2>Songs Found</h2>
+        <ul id="songs"></ul>
+      </section>
+
+      <footer>
+        <p>
+          Upload the downloaded file to
+          <a
+            href="https://www.tunemymusic.com/transfer/text-file-to-spotify"
+            target="_blank"
+            rel="noopener"
+            >TuneMyMusic</a
+          >
+          to create your Spotify playlist.
+        </p>
+      </footer>
+    </main>
+
+    <script src="app.js"></script>
+  </body>
+</html>

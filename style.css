@@ -1,0 +1,123 @@
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: #121212;
+    color: #fff;
+    min-height: 100vh;
+    padding: 2rem;
+}
+
+main {
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+h1 {
+    font-size: 2.5rem;
+    color: #1db954;
+    margin-bottom: 0.25rem;
+}
+
+.subtitle {
+    color: #b3b3b3;
+    margin-bottom: 2rem;
+}
+
+button {
+    background: #1db954;
+    color: #000;
+    border: none;
+    padding: 1rem 2rem;
+    font-size: 1rem;
+    font-weight: 600;
+    border-radius: 500px;
+    cursor: pointer;
+    transition: background 0.2s, transform 0.1s;
+}
+
+button:hover {
+    background: #1ed760;
+    transform: scale(1.02);
+}
+
+button:disabled {
+    background: #535353;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.status {
+    margin-top: 1.5rem;
+    padding: 1rem;
+    border-radius: 8px;
+    background: #282828;
+}
+
+.status.error {
+    background: #4a1c1c;
+    color: #ff6b6b;
+}
+
+.status.success {
+    background: #1c4a2e;
+    color: #69db7c;
+}
+
+.song-list {
+    margin-top: 2rem;
+}
+
+.song-list h2 {
+    font-size: 1.25rem;
+    margin-bottom: 1rem;
+    color: #b3b3b3;
+}
+
+.song-list ul {
+    list-style: none;
+}
+
+.song-list li {
+    padding: 0.75rem 1rem;
+    background: #282828;
+    margin-bottom: 0.5rem;
+    border-radius: 4px;
+    display: flex;
+    gap: 1rem;
+}
+
+.song-list .time {
+    color: #b3b3b3;
+    font-family: monospace;
+    min-width: 3.5rem;
+}
+
+.song-list .track {
+    color: #fff;
+}
+
+.song-list .artist {
+    font-weight: 600;
+}
+
+footer {
+    margin-top: 3rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid #282828;
+    color: #b3b3b3;
+    font-size: 0.875rem;
+}
+
+footer a {
+    color: #1db954;
+    text-decoration: none;
+}
+
+footer a:hover {
+    text-decoration: underline;
+}
