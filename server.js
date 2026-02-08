@@ -2,6 +2,7 @@ const http = require('http');
 const fs = require('fs');
 const path = require('path');
 const handler = require('./api/songs');
+const { startScheduler } = require('./scheduler');
 
 const PORT = process.env.PORT || 3000;
 
@@ -34,4 +35,5 @@ const server = http.createServer(async (req, res) => {
 
 server.listen(PORT, () => {
     console.log(`Server running at http://localhost:${PORT}`);
+    startScheduler();
 });
