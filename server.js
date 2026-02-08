@@ -2,6 +2,7 @@ const http = require('http');
 const fs = require('fs');
 const path = require('path');
 const handler = require('./api/songs');
+const cronHandler = require('./api/cron/export');
 const { startScheduler } = require('./scheduler');
 
 const PORT = process.env.PORT || 3000;
@@ -14,6 +15,9 @@ const MIME_TYPES = {
 
 const server = http.createServer(async (req, res) => {
     // API routes
+    if (req.url.startsWith('/api/cron/export')) {
+        return cronHandler(req, res);
+    }
     if (req.url.startsWith('/api/songs')) {
         req.query = Object.fromEntries(new URL(req.url, `http://localhost:${PORT}`).searchParams);
         return handler(req, res);

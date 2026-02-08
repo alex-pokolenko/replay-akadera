@@ -25,13 +25,18 @@ No tests or linting configured.
 
 **Frontend** (`public/app.js`): Thin client that calls `GET /api/songs?from=HH:MM&to=HH:MM`, renders the song list, and handles file download.
 
-**Scheduler** (`scheduler.js`): Automated playlist export. Only runs in the long-running `server.js` process (not on Vercel/serverless). Key design:
-- `SCHEDULE` const: hardcoded audition entries `{ day, startTime, endTime, title, dj }`. Will eventually be dynamic.
+**Schedule** (`lib/schedule.js`): Shared `SCHEDULE` array, `DAY_NAMES`, and `buildFilename()`. Imported by both `scheduler.js` and `api/cron/export.js`.
+
+**Storage** (`lib/storage.js`): Abstraction over Vercel Blob (`exists`, `upload`). Swap this module to migrate to AWS S3 — same interface.
+
+**Scheduler** (`scheduler.js`): Automated playlist export for self-hosted use. Only runs in the long-running `server.js` process (not on Vercel/serverless). Key design:
 - `setTimeout` chains (not `setInterval`): `getNextTrigger()` computes exact ms until the next audition's trigger time, `scheduleNext()` sets a timeout and chains to the next one after export.
 - Trigger time: `endTime + FETCH_DELAY_MINUTES` (default 10, adjustable const).
 - Output: playlist files in `playlists/` directory, named `Title - DJ - DD-MM-YY.txt`.
 - Duplicate prevention: skips export if file already exists (safe on server restart).
 - Never crashes: `exportPlaylist()` is wrapped in try/catch, scheduler continues regardless.
+
+**Cron handler** (`api/cron/export.js`): Serverless alternative to `scheduler.js`. Triggered daily at 21:00 UTC by Vercel Cron. Checks which shows ended today (Europe/Warsaw timezone), exports playlists to Vercel Blob via `lib/storage.js`. Auth via `CRON_SECRET` Bearer token. Each show wrapped in its own try/catch.
 
 **Server** (`server.js`): Node.js HTTP server. Routes `/api/*` to the handler, serves static files from `public/`, starts the scheduler on boot.
 
@@ -39,7 +44,9 @@ No tests or linting configured.
 
 **HTML parsing:** Expects `<li>HH:MM &nbsp; <strong>Artist - Title</strong></li>` inside `.audio-lista`. Uses cheerio with regex fallback for robustness.
 
-**Deployment:** `api/` + `public/` structure is Vercel zero-config. For other platforms (Netlify, Cloudflare Pages), only the handler wrapper needs adaptation.
+**Deployment:** `api/` + `public/` structure is Vercel zero-config. Cron schedule defined in `vercel.json`. For other platforms (Netlify, Cloudflare Pages), only the handler wrapper needs adaptation.
+
+**Environment variables** (Vercel dashboard): `CRON_SECRET` (auth for cron endpoint), `BLOB_READ_WRITE_TOKEN` (auto-created when connecting Vercel Blob store).
 
 ## Conventions
 
