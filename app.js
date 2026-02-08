@@ -173,7 +173,9 @@ function decodeHtmlEntities(text) {
 }
 
 function generatePlaylistText(songs) {
-    return songs
+    // Reverse so oldest songs are first (chronological order for Spotify playback)
+    return [...songs]
+        .reverse()
         .map(song => `${song.artist} - ${song.title}`)
         .join('\n');
 }
@@ -193,7 +195,9 @@ function downloadFile(content, filename) {
 }
 
 function displaySongs(songs) {
-    songsUl.innerHTML = songs
+    // Reverse to show oldest first (chronological order)
+    songsUl.innerHTML = [...songs]
+        .reverse()
         .map(song => `
             <li>
                 <span class="time">${song.time}</span>
