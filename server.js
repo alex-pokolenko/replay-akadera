@@ -1,8 +1,7 @@
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
-const handler = require('./api/songs');
-const cronHandler = require('./api/cron/export');
+const { fetchRadioPage, parseSongs, filterSongsByTimeRange } = require('./lib/songs');
 const { startScheduler } = require('./scheduler');
 
 const PORT = process.env.PORT || 3000;
@@ -14,13 +13,27 @@ const MIME_TYPES = {
 };
 
 const server = http.createServer(async (req, res) => {
-    // API routes
-    if (req.url.startsWith('/api/cron/export')) {
-        return cronHandler(req, res);
-    }
+    // Songs API — same logic as lambda/songs.js but using req/res for local dev
     if (req.url.startsWith('/api/songs')) {
-        req.query = Object.fromEntries(new URL(req.url, `http://localhost:${PORT}`).searchParams);
-        return handler(req, res);
+        res.setHeader('Access-Control-Allow-Origin', '*');
+        res.setHeader('Content-Type', 'application/json');
+
+        try {
+            const params = Object.fromEntries(new URL(req.url, `http://localhost:${PORT}`).searchParams);
+            const html = await fetchRadioPage();
+            let songs = parseSongs(html);
+
+            if (params.from && params.to) {
+                songs = filterSongsByTimeRange(songs, params.from, params.to);
+            }
+
+            res.writeHead(200);
+            return res.end(JSON.stringify({ songs }));
+        } catch (error) {
+            console.error('Failed to fetch songs:', error);
+            res.writeHead(500);
+            return res.end(JSON.stringify({ error: `Failed to fetch songs: ${error.message}` }));
+        }
     }
 
     // Static files from public/

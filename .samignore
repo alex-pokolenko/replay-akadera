@@ -1,0 +1,10 @@
+# Files Lambda doesn't need — keeps the deployment package small.
+public/
+playlists/
+.git/
+.github/
+.claude/
+.aws-sam/
+.DS_Store
+*.md
+vercel.json

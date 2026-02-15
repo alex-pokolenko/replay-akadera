@@ -1,0 +1,156 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Radio Akadera playlist exporter — Lambda API, S3 storage, EventBridge schedules
+
+Globals:
+  Function:
+    Runtime: nodejs20.x
+    Timeout: 30
+    MemorySize: 128
+    Architectures:
+      - arm64  # Graviton2: cheaper and faster for Node.js
+
+Resources:
+
+  # ---- S3 bucket for playlist files ----
+  # Replaces Vercel Blob. Public-readable so exported playlists have shareable URLs.
+  PlaylistBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub replay-akadera-playlists-${AWS::AccountId}
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: false
+        BlockPublicPolicy: false
+        IgnorePublicAcls: false
+        RestrictPublicBuckets: false
+
+  PlaylistBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref PlaylistBucket
+      PolicyDocument:
+        Statement:
+          - Effect: Allow
+            Principal: '*'
+            Action: s3:GetObject
+            Resource: !Sub arn:aws:s3:::${PlaylistBucket}/*
+
+  # ---- Songs API Lambda ----
+  # Serves GET /api/songs — the frontend fetches song listings through this.
+  # API Gateway (HTTP API) is created automatically by the HttpApi event.
+  SongsFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: lambda/songs.handler
+      CodeUri: .
+      Events:
+        GetSongs:
+          Type: HttpApi
+          Properties:
+            Path: /api/songs
+            Method: GET
+
+  # ---- Export Lambda ----
+  # Exports a single show's playlist to S3. Invoked by EventBridge Scheduler.
+  ExportFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: lambda/export.handler
+      CodeUri: .
+      Timeout: 60
+      Environment:
+        Variables:
+          S3_BUCKET: !Ref PlaylistBucket
+      Policies:
+        - S3CrudPolicy:
+            BucketName: !Ref PlaylistBucket
+
+  # ---- EventBridge Schedules (one per show) ----
+  # Each fires at endTime + 10 minutes in Europe/Warsaw timezone.
+  # The Input JSON tells the Lambda which show to export (index into SCHEDULE array).
+
+  # SCHEDULE[0]: Tuesday 20:00-22:00 — Huta Zwierzyniecka 4
+  TuesdaySchedule:
+    Type: AWS::Scheduler::Schedule
+    Properties:
+      Name: akadera-tuesday-huta
+      ScheduleExpression: cron(10 22 ? * TUE *)
+      ScheduleExpressionTimezone: Europe/Warsaw
+      FlexibleTimeWindow:
+        Mode: 'OFF'
+      Target:
+        Arn: !GetAtt ExportFunction.Arn
+        RoleArn: !GetAtt SchedulerRole.Arn
+        Input: '{"showIndex": 0}'
+
+  # SCHEDULE[1]: Friday 18:00-22:00 — Kultywator
+  FridaySchedule:
+    Type: AWS::Scheduler::Schedule
+    Properties:
+      Name: akadera-friday-kultywator
+      ScheduleExpression: cron(10 22 ? * FRI *)
+      ScheduleExpressionTimezone: Europe/Warsaw
+      FlexibleTimeWindow:
+        Mode: 'OFF'
+      Target:
+        Arn: !GetAtt ExportFunction.Arn
+        RoleArn: !GetAtt SchedulerRole.Arn
+        Input: '{"showIndex": 1}'
+
+  # SCHEDULE[2]: Saturday 19:00-20:00 — Żaba z bagna
+  SaturdaySchedule:
+    Type: AWS::Scheduler::Schedule
+    Properties:
+      Name: akadera-saturday-zaba
+      ScheduleExpression: cron(10 20 ? * SAT *)
+      ScheduleExpressionTimezone: Europe/Warsaw
+      FlexibleTimeWindow:
+        Mode: 'OFF'
+      Target:
+        Arn: !GetAtt ExportFunction.Arn
+        RoleArn: !GetAtt SchedulerRole.Arn
+        Input: '{"showIndex": 2}'
+
+  # SCHEDULE[3]: Sunday 20:00-22:00 — Blues pod gwiazdami
+  SundaySchedule:
+    Type: AWS::Scheduler::Schedule
+    Properties:
+      Name: akadera-sunday-blues
+      ScheduleExpression: cron(10 22 ? * SUN *)
+      ScheduleExpressionTimezone: Europe/Warsaw
+      FlexibleTimeWindow:
+        Mode: 'OFF'
+      Target:
+        Arn: !GetAtt ExportFunction.Arn
+        RoleArn: !GetAtt SchedulerRole.Arn
+        Input: '{"showIndex": 3}'
+
+  # ---- IAM role for EventBridge → Lambda ----
+  # AWS services need explicit permission to call each other.
+  # This role lets EventBridge Scheduler invoke the export Lambda.
+  SchedulerRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: scheduler.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: InvokeExportLambda
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action: lambda:InvokeFunction
+                Resource: !GetAtt ExportFunction.Arn
+
+Outputs:
+  ApiUrl:
+    Description: API Gateway endpoint — use this for the Amplify rewrite rule
+    Value: !Sub https://${ServerlessHttpApi}.execute-api.${AWS::Region}.amazonaws.com
+  PlaylistBucketName:
+    Description: S3 bucket where playlists are stored
+    Value: !Ref PlaylistBucket

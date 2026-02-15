@@ -3,10 +3,10 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "dev": "node server.js"
+    "dev": "node server.js",
+    "deploy": "sam build && sam deploy"
   },
   "dependencies": {
-    "@vercel/blob": "^2.2.0",
     "cheerio": "^1.2.0"
   }
 }

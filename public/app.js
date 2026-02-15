@@ -36,7 +36,7 @@ async function fetchSongs() {
             from: timeFromInput.value,
             to: timeToInput.value,
         });
-        const response = await fetch(`/api/songs?${params}`);
+        const response = await fetch(`${API_BASE}/api/songs?${params}`);
         const data = await response.json();
 
         if (!response.ok) {
